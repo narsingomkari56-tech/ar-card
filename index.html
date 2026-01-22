@@ -1,62 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Fixed AR Business Card</title>
+    <title>AR Video Test</title>
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
-    <body style="margin: 0; overflow: hidden;">
+    <style>
+        /* Centered UI Overlay */
+        .ui-container {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; text-align: center; z-index: 10;
+            display: flex; justify-content: center; gap: 15px; pointer-events: none;
+        }
+        .btn {
+            background-color: #25D366; color: white; padding: 12px 24px;
+            border-radius: 30px; text-decoration: none; font-family: Arial, sans-serif;
+            font-weight: bold; box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+            pointer-events: auto; border: 2px solid white;
+        }
+        .upi-btn { background-color: #1a73e8; }
+        
+        /* Red Start Button (Vital for unlocking video) */
+        #start-button-container {
+            position: fixed; top: 20px; width: 100%; text-align: center; z-index: 999;
+        }
+        #start-btn {
+            padding: 15px 30px; background: red; color: white; border: 3px solid white;
+            font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
 
-    <div style="position: fixed; top: 10px; width: 100%; text-align: center; z-index: 1;">
-        <button id="btn" style="padding: 15px; font-size: 20px; background: red; color: white; border: 2px solid white; border-radius: 10px;">
-            TAP HERE TO START
-        </button>
+<body style="margin: 0; overflow: hidden;">
+
+    <div id="start-button-container">
+        <button id="start-btn">TAP HERE TO ENABLE VIDEO</button>
     </div>
 
-    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; text-align: center; z-index: 10; display: flex; justify-content: center; gap: 15px; pointer-events: none;">
-        <a href="https://wa.me/919876543210" target="_blank" style="background-color: #25D366; color: white; padding: 12px 24px; border-radius: 30px; text-decoration: none; font-family: Arial, sans-serif; font-weight: bold; pointer-events: auto; border: 2px solid white;">WhatsApp</a>
-        <a href="upi://pay?pa=yourname@upi&pn=YourName&cu=INR" style="background-color: #1a73e8; color: white; padding: 12px 24px; border-radius: 30px; text-decoration: none; font-family: Arial, sans-serif; font-weight: bold; pointer-events: auto; border: 2px solid white;">UPI Pay</a>
+    <div class="ui-container">
+        <a href="https://wa.me/919876543210" class="btn" target="_blank">WhatsApp</a>
+        <a href="upi://pay?pa=yourname@upi&pn=YourName&cu=INR" class="btn upi-btn">UPI Pay</a>
     </div>
 
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+    <a-scene 
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        renderer="logarithmicDepthBuffer: true;"
+        vr-mode-ui="enabled: false">
         
         <a-assets>
-            <video id="vid" 
-                   src="https://media.w3.org/2010/05/sintel/trailer.mp4" 
-                   preload="auto" loop crossorigin playsinline webkit-playsinline muted>
+            <video id="bunny-video" 
+                   src="https://cdn.aframe.io/videos/bunny.mp4" 
+                   preload="auto" 
+                   loop 
+                   crossorigin="anonymous" 
+                   webkit-playsinline 
+                   playsinline 
+                   muted>
             </video>
         </a-assets>
 
         <a-marker type="pattern" url="./pattern-marker.patt">
-            <a-video src="#vid" width="1.8" height="1" rotation="-90 0 0"></a-video>
+            <a-video src="#bunny-video" width="1.8" height="1" rotation="-90 0 0"></a-video>
         </a-marker>
 
         <a-marker preset="hiro">
-            <a-video src="#vid" width="1.8" height="1" rotation="-90 0 0"></a-video>
+            <a-video src="#bunny-video" width="1.8" height="1" rotation="-90 0 0"></a-video>
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        // Button Logic
-        document.getElementById('btn').addEventListener('click', function() {
-            var v = document.querySelector('#vid');
-            v.play();
-            v.pause(); // Prime the video
-            this.style.background = "green";
-            this.innerText = "SCAN 'ON' IMAGE NOW";
-        });
+        var video = document.querySelector('#bunny-video');
+        var btn = document.getElementById('start-btn');
 
-        // Auto-play Logic
-        var v = document.querySelector('#vid');
-        var markers = document.querySelectorAll('a-marker');
-
-        markers.forEach((marker) => {
-            marker.addEventListener('markerFound', () => { v.play(); });
-            marker.addEventListener('markerLost', () => { v.pause(); });
-        });
-    </script>
-</body>
-</html>
+        // 1. Button Click unlocks the video engine
+        btn.addEventListener('click', function() {
+            video.play();
+            video.pause(); // Start and instantly pause to "warm up" the video
+            btn.
