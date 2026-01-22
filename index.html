@@ -37,9 +37,9 @@
 <body style="margin: 0; overflow: hidden;">
 
     <div id="start-screen">
-        <h1>AR Test Mode</h1>
+        <h1>AR Video Test</h1>
         <p>Tap below & point at "ON" Logo</p>
-        <button id="start-btn">START EXPERIENCE</button>
+        <button id="start-btn">START</button>
     </div>
 
     <div class="ui-container">
@@ -55,7 +55,7 @@
         
         <a-assets>
             <video id="test-video" 
-                   src="https://cdn.aframe.io/videos/bunny.mp4" 
+                   src="https://vjs.zencdn.net/v/oceans.mp4" 
                    preload="auto" 
                    loop 
                    crossorigin="anonymous" 
@@ -81,7 +81,7 @@
             document.getElementById('start-screen').style.display = 'none';
             var video = document.querySelector('#test-video');
             video.play(); 
-            // Removed video.pause() to ensure it keeps trying to buffer
+            video.pause(); 
         });
 
         var video = document.querySelector('#test-video');
@@ -93,6 +93,13 @@
 
         marker.addEventListener('markerLost', function() {
             video.pause();
+        });
+        
+        // Extra failsafe: If the video is clicked, force play
+        window.addEventListener('click', function () {
+            if(video.paused && marker.object3D.visible) {
+                video.play();
+            }
         });
     </script>
 </body>
