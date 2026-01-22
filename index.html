@@ -6,8 +6,42 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
-    <body style="margin: 0; overflow: hidden;">
-    
+    <style>
+        /* This is the new "Start Screen" */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+        }
+        #start-btn {
+            padding: 15px 30px;
+            background: #25D366;
+            border: none;
+            color: white;
+            font-size: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body style="margin: 0; overflow: hidden;">
+
+    <div id="start-screen">
+        <h1>Welcome!</h1>
+        <p>Point camera at marker</p>
+        <button id="start-btn">TAP TO START AR</button>
+    </div>
+
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
         
         <a-assets>
@@ -15,11 +49,10 @@
                    src="./intro.mp4" 
                    preload="auto" 
                    loop 
-                   crossorigin 
+                   crossorigin="anonymous" 
                    webkit-playsinline 
                    playsinline 
-                   muted>
-            </video>
+                   muted> </video>
         </a-assets>
 
         <a-marker preset="hiro">
@@ -34,11 +67,28 @@
     </a-scene>
 
     <script>
+        // Logic to handle the "Start" button
+        document.getElementById('start-btn').addEventListener('click', function() {
+            // 1. Hide the start screen
+            document.getElementById('start-screen').style.display = 'none';
+            
+            // 2. Force the video to "play" immediately (even if not visible yet)
+            // This unlocks the browser's video engine
+            var video = document.querySelector('#my-video');
+            video.play();
+            video.pause(); // Pause it instantly so it waits for the marker
+        });
+
+        // Standard Marker Logic
         var video = document.querySelector('#my-video');
         var marker = document.querySelector('a-marker');
 
         marker.addEventListener('markerFound', function() {
             video.play();
+        });
+
+        marker.addEventListener('markerLost', function() {
+            video.pause();
         });
     </script>
 </body>
