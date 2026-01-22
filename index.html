@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Business Card - Test Mode</title>
+    <title>AR Final Check</title>
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -23,13 +23,13 @@
         
         #start-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: flex;
-            justify-content: center; align-items: center; z-index: 9999;
+            background: rgba(200, 0, 0, 0.9); /* RED BACKGROUND so you know it's new */
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
             color: white; font-family: Arial, sans-serif; flex-direction: column;
         }
         #start-btn {
-            padding: 15px 30px; background: white; color: black; border: none;
-            font-size: 18px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: 20px;
+            padding: 20px 40px; background: white; color: black; border: none;
+            font-size: 24px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: 20px;
         }
     </style>
 </head>
@@ -37,9 +37,10 @@
 <body style="margin: 0; overflow: hidden;">
 
     <div id="start-screen">
-        <h1>AR Video Test</h1>
-        <p>Tap below & point at "ON" Logo</p>
-        <button id="start-btn">START</button>
+        <h1>FINAL TEST</h1>
+        <p>1. Tap Button Below</p>
+        <p>2. Point at "ON" Marker</p>
+        <button id="start-btn">CLICK TO START</button>
     </div>
 
     <div class="ui-container">
@@ -55,7 +56,7 @@
         
         <a-assets>
             <video id="test-video" 
-                   src="https://vjs.zencdn.net/v/oceans.mp4" 
+                   src="https://media.w3.org/2010/05/sintel/trailer.mp4" 
                    preload="auto" 
                    loop 
                    crossorigin="anonymous" 
@@ -66,22 +67,36 @@
         </a-assets>
 
         <a-marker type="pattern" url="./pattern-ON.patt" smooth="true">
+            
             <a-video src="#test-video" 
                      width="1.8" height="1" 
                      position="0 0 0" 
                      rotation="-90 0 0">
             </a-video>
+            
+            <a-text value="LOADING VIDEO..." 
+                    position="0 0.5 -1" 
+                    rotation="-90 0 0" 
+                    align="center"
+                    color="red"
+                    scale="1.5 1.5 1.5">
+            </a-text>
+
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
+        // Force the video to be "ready" immediately on click
         document.getElementById('start-btn').addEventListener('click', function() {
             document.getElementById('start-screen').style.display = 'none';
+            
             var video = document.querySelector('#test-video');
-            video.play(); 
-            video.pause(); 
+            // We force it to play, then pause immediately
+            // This 'wakes up' the video engine on the phone
+            video.play();
+            video.pause();
         });
 
         var video = document.querySelector('#test-video');
@@ -94,10 +109,10 @@
         marker.addEventListener('markerLost', function() {
             video.pause();
         });
-        
-        // Extra failsafe: If the video is clicked, force play
+
+        // SAFETY: If you tap the screen while looking at the marker, FORCE play
         window.addEventListener('click', function () {
-            if(video.paused && marker.object3D.visible) {
+            if (marker.object3D.visible) {
                 video.play();
             }
         });
