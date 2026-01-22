@@ -1,48 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Animated Show</title>
+    <title>Tap to Play Fix</title>
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.0.0/dist/aframe-extras.min.js"></script>
     
-    <style>
-        .ui-container {
-            position: fixed; top: 90%; left: 50%; transform: translate(-50%, -50%);
-            width: 100%; text-align: center; z-index: 10;
-        }
-        .btn {
-            background-color: #25D366; color: white; padding: 12px 24px;
-            border-radius: 30px; text-decoration: none; font-family: Arial, sans-serif;
-            font-weight: bold; border: 2px solid white; box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
-        }
-    </style>
-</head>
+    <body style="margin: 0; overflow: hidden;">
 
-<body style="margin: 0; overflow: hidden;">
-
-    <div class="ui-container">
-        <a href="https://wa.me/919876543210" class="btn" target="_blank">Contact Me</a>
+    <div style="position: fixed; top: 10px; width: 100%; text-align: center; z-index: 1;">
+        <div style="background: rgba(0, 0, 0, 0.7); color: white; padding: 10px; display: inline-block; border-radius: 5px;">
+            Scan Marker -> Then TAP SCREEN to Play
+        </div>
     </div>
 
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+        
+        <a-assets>
+            <video id="bunny-video" 
+                   src="https://cdn.aframe.io/videos/bunny.mp4" 
+                   preload="auto" 
+                   loop 
+                   crossorigin="anonymous" 
+                   webkit-playsinline 
+                   playsinline 
+                   muted> </video>
+        </a-assets>
 
         <a-marker preset="hiro">
-            
-            <a-entity 
-                gltf-model="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb"
-                scale="2 2 2"
-                position="0 0 0"
-                rotation="0 0 0"
-                animation-mixer> </a-entity>
+            <a-video src="#bunny-video" width="1.8" height="1" rotation="-90 0 0"></a-video>
+        </a-marker>
 
-            <a-text value="WALKING..." position="0 2 0" align="center" color="red" scale="2 2 2"></a-text>
-
+        <a-marker type="pattern" url="./pattern-marker.patt">
+            <a-video src="#bunny-video" width="1.8" height="1" rotation="-90 0 0"></a-video>
         </a-marker>
 
         <a-entity camera></a-entity>
     </a-scene>
+
+    <script>
+        // THE FIX: Listen for a tap anywhere on the screen
+        window.addEventListener('click', function () {
+            var v = document.querySelector('#bunny-video');
+            console.log("Screen tapped, forcing play...");
+            v.play();
+        });
+        
+        // Also try to play when marker is found
+        var m = document.querySelector('a-marker');
+        m.addEventListener('markerFound', function() {
+            var v = document.querySelector('#bunny-video');
+            v.play();
+        });
+    </script>
 </body>
 </html>
