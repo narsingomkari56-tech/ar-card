@@ -1,76 +1,142 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Test</title>
+    <title>AR Custom Marker</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     
     <!-- AR Libraries -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; }
-        #status {
-            position: fixed; bottom: 15px; width: 100%;
-            text-align: center; padding: 12px;
-            background: rgba(0,0,0,0.8); color: white;
-            font-family: sans-serif; font-weight: bold;
-            z-index: 9999; font-size: 18px;
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
         }
+        
+        #status {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 9999;
+            transition: all 0.3s ease;
+        }
+        
         #status.detected {
-            background: rgba(37, 211, 102, 0.9);
+            background: rgba(37, 211, 102, 0.95);
+            transform: scale(1.03);
+        }
+        
+        #instructions {
+            position: fixed;
+            top: 15px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: 14px;
+            z-index: 9999;
         }
     </style>
 </head>
 <body>
 
-    <div id="status">🔍 Show HIRO marker</div>
+    <div id="instructions">📱 Point camera at YOUR custom marker</div>
+    <div id="status">🔍 Scanning for your marker...</div>
 
     <a-scene 
         embedded 
-        arjs="sourceType: webcam; debugUIEnabled: false;"
+        arjs="sourceType: webcam; 
+               debugUIEnabled: false;
+               patternRatio: 0.75;"
         vr-mode-ui="enabled: false">
         
-        <!-- HIRO MARKER (built-in - no pattern file needed!) -->
-        <a-marker preset="hiro">
+        <a-assets>
+            <video id="ar-video" src="video.mp4" loop muted playsinline></video>
+            <a-asset-item id="my-marker" src="pattern-marker.patt"></a-asset-item>
+        </a-assets>
+        
+        <!-- CUSTOM MARKER -->
+        <a-marker preset="custom" url="#my-marker" smooth="true">
             <a-video 
-                src="video.mp4"
+                src="#ar-video"
                 width="1.8"
                 height="1"
                 rotation="-90 0 0"
-                autoplay="true"
-                muted
-                loop
-                playsinline>
+                muted>
             </a-video>
         </a-marker>
 
     </a-scene>
 
     <script>
-        const status = document.getElementById('status');
+        const statusEl = document.getElementById('status');
         const scene = document.querySelector('a-scene');
+        let isDetected = false;
         
         // Marker detection feedback
         scene.addEventListener('markerFound', () => {
-            status.textContent = "✅ Video playing!";
-            status.className = 'detected';
+            if (!isDetected) {
+                statusEl.textContent = "✅ MARKER DETECTED! Video playing...";
+                statusEl.className = 'detected';
+                console.log("🎯 Custom marker detected!");
+                isDetected = true;
+            }
         });
         
         scene.addEventListener('markerLost', () => {
-            status.textContent = "🔍 Show HIRO marker";
-            status.className = '';
+            if (isDetected) {
+                statusEl.textContent = "🔍 Scanning for your marker...";
+                statusEl.className = '';
+                console.log("⚠️ Marker lost");
+                isDetected = false;
+            }
         });
         
-        // Force mute (double protection)
+        // Force mute
         setTimeout(() => {
-            const vid = document.querySelector('video');
-            if (vid) {
-                vid.muted = true;
-                vid.volume = 0;
+            const videoEl = document.querySelector('video');
+            if (videoEl) {
+                videoEl.muted = true;
+                videoEl.volume = 0;
+                console.log("🔇 Video muted");
             }
         }, 2000);
+        
+        // Error handling
+        scene.addEventListener('error', (e) => {
+            console.error("AR Error:", e.detail);
+            if (e.detail.type === 'notfound' || e.detail.message?.includes('pattern')) {
+                statusEl.textContent = "❌ Pattern file missing!";
+                statusEl.style.background = "rgba(220, 50, 47, 0.9)";
+            }
+        });
+        
+        // Verify pattern file exists
+        fetch('pattern-marker.patt')
+            .then(response => {
+                if (response.ok) {
+                    console.log("✅ pattern-marker.patt loaded successfully");
+                } else {
+                    throw new Error('Pattern file not found');
+                }
+            })
+            .catch(error => {
+                console.error("❌ pattern-marker.patt NOT FOUND:", error);
+                statusEl.textContent = "❌ pattern-marker.patt NOT FOUND!";
+                statusEl.style.background = "rgba(220, 50, 47, 0.9)";
+            });
     </script>
 
 </body>
