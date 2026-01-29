@@ -4,9 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Connect on WhatsApp</title>
-    <!-- CRITICAL: Removed trailing spaces in script URLs -->
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
+    
+    <!-- ✅ UPDATED: Reliable CDN URLs (NO trailing spaces) -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.js"></script>
     
     <style>
         .whatsapp-btn {
@@ -31,7 +32,6 @@
         .whatsapp-btn img {
             width: 24px;
             height: 24px;
-            display: block; /* Prevents layout shift */
         }
         #error-msg {
             position: fixed; 
@@ -40,24 +40,51 @@
             width: 100%;
             text-align: center; 
             color: white; 
-            background: rgba(220, 50, 47, 0.9); /* Better visibility */
-            padding: 8px;
+            background: rgba(220, 50, 47, 0.9);
+            padding: 10px;
             font-family: sans-serif;
             display: none; 
             z-index: 9998;
             font-weight: bold;
         }
-        /* Hide AR debug UI completely */
-        .arjs-debug {
-            display: none !important;
+        #loading {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            font-family: sans-serif;
+        }
+        #loading-bar {
+            width: 200px;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        #loading-progress {
+            width: 0%;
+            height: 100%;
+            background: #25D366;
+            transition: width 0.3s;
         }
     </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
 
-    <div id="error-msg">⚠️ Camera access required. Check permissions or use HTTPS.</div>
+    <!-- Loading screen -->
+    <div id="loading">
+        <h2>🚀 Loading AR Experience...</h2>
+        <div id="loading-bar"><div id="loading-progress"></div></div>
+        <p id="loading-status">Initializing libraries...</p>
+    </div>
 
-    <!-- FIXED: Removed trailing space in WhatsApp URL -->
+    <div id="error-msg">⚠️ Error loading AR libraries. Check console.</div>
+
     <a href="https://wa.me/919999999999" class="whatsapp-btn">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA">
         Chat on WhatsApp
@@ -66,19 +93,15 @@
     <a-scene 
         embedded
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; 
-               debugUIEnabled: false; 
-               detectionMode: mono; 
-               matrixCodeType: 3x3;">
+        arjs="sourceType: webcam; debugUIEnabled: false;"
+        style="display: none;"> <!-- Hidden until loaded -->
         
         <a-assets>
-            <!-- FIXED: Removed trailing space in SVG URL -->
             <img id="wa-logo" src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg">
-            <!-- CRITICAL: Verify this file exists in your project root! -->
+            <!-- Make sure this file exists in your project! -->
             <a-asset-item id="marker" src="pattern-marker.patt"></a-asset-item>
         </a-assets>
 
-        <!-- FIXED: Use asset reference + added fallback -->
         <a-marker preset="custom" url="#marker">
             <a-image 
                 src="#wa-logo" 
@@ -90,52 +113,98 @@
             </a-image>
         </a-marker>
         
-        <!-- REMOVED explicit camera entity - AR.js handles this internally -->
-        
     </a-scene>
 
     <script>
-        // Comprehensive camera/AR initialization check
-        document.addEventListener('DOMContentLoaded', () => {
-            const errorMsg = document.getElementById('error-msg');
-            
-            // Check secure context (REQUIRED for camera)
-            if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-                errorMsg.textContent = "🔒 Camera requires HTTPS or localhost";
-                errorMsg.style.display = 'block';
-                console.error("Camera access blocked: Page must be served over HTTPS or localhost");
-                return;
+        const loadingScreen = document.getElementById('loading');
+        const loadingProgress = document.getElementById('loading-progress');
+        const loadingStatus = document.getElementById('loading-status');
+        const errorMsg = document.getElementById('error-msg');
+        const scene = document.querySelector('a-scene');
+        
+        let progress = 0;
+        const updateProgress = (status, percent) => {
+            loadingStatus.textContent = status;
+            loadingProgress.style.width = `${percent}%`;
+        };
+
+        // Step 1: Check secure context
+        updateProgress("Checking security...", 10);
+        if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+            errorMsg.textContent = "🔒 Camera requires HTTPS or localhost";
+            errorMsg.style.display = 'block';
+            loadingScreen.style.display = 'none';
+            console.error("❌ Not a secure context. Use HTTPS or localhost.");
+            throw new Error("Insecure context");
+        }
+
+        // Step 2: Wait for A-Frame to load
+        updateProgress("Loading A-Frame...", 30);
+        const checkAFrame = setInterval(() => {
+            if (window.AFRAME) {
+                clearInterval(checkAFrame);
+                console.log("✅ A-Frame loaded:", AFRAME.version);
+                updateProgress("Loading AR.js...", 50);
+                
+                // Step 3: Wait for AR.js
+                const checkARjs = setInterval(() => {
+                    if (window.ARjs) {
+                        clearInterval(checkARjs);
+                        console.log("✅ AR.js loaded");
+                        updateProgress("Initializing camera...", 70);
+                        
+                        // Step 4: Check camera permission
+                        navigator.mediaDevices.getUserMedia({ video: true })
+                            .then(stream => {
+                                stream.getTracks().forEach(track => track.stop());
+                                console.log("✅ Camera permission granted");
+                                updateProgress("Starting AR...", 90);
+                                
+                                // Step 5: Show scene and hide loading
+                                setTimeout(() => {
+                                    scene.style.display = 'block';
+                                    loadingScreen.style.display = 'none';
+                                    console.log("🎉 AR experience ready!");
+                                }, 300);
+                            })
+                            .catch(err => {
+                                clearInterval(checkARjs);
+                                errorMsg.textContent = `	Camera blocked: ${err.name}`;
+                                errorMsg.style.display = 'block';
+                                loadingScreen.style.display = 'none';
+                                console.error("❌ Camera error:", err);
+                            });
+                    } else if (progress > 10000) { // Timeout after 10 seconds
+                        clearInterval(checkARjs);
+                        errorMsg.textContent = "❌ AR.js failed to load. Check network/console.";
+                        errorMsg.style.display = 'block';
+                        loadingScreen.style.display = 'none';
+                        console.error("AR.js not loaded after 10 seconds");
+                    }
+                    progress += 100;
+                }, 100);
             }
-            
-            // Verify critical resources loaded
-            if (!window.AFRAME || !window.ARjs) {
-                errorMsg.textContent = "❌ AR libraries failed to load. Check console.";
+        }, 100);
+
+        // Fallback timeout
+        setTimeout(() => {
+            if (!window.AFRAME) {
+                errorMsg.textContent = "❌ A-Frame failed to load. Check your internet connection.";
                 errorMsg.style.display = 'block';
-                console.error("AR.js or A-Frame not loaded. Check network tab for 404 errors.");
-                return;
+                loadingScreen.style.display = 'none';
+                console.error("A-Frame not loaded after 10 seconds");
             }
-            
-            // Camera permission check (complements AR.js)
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    // Stop test stream immediately (AR.js will open its own)
-                    stream.getTracks().forEach(track => track.stop());
-                    console.log("✓ Camera permission granted");
-                })
-                .catch(err => {
-                    errorMsg.textContent = `	Camera blocked: ${err.name}. Check browser permissions.`;
-                    errorMsg.style.display = 'block';
-                    console.error("Camera permission error:", err);
-                });
-            
-            // AR.js specific error handling
-            document.querySelector('a-scene').addEventListener('error', (e) => {
-                if (e.detail.type === 'marker') {
-                    errorMsg.textContent = "⚠️ Marker pattern not found. Verify 'pattern-marker.patt' exists.";
-                    errorMsg.style.display = 'block';
-                }
+        }, 10000);
+
+        // AR.js marker error handling
+        if (scene) {
+            scene.addEventListener('markerFound', () => {
+                console.log("🎯 Marker detected!");
             });
-        });
+            scene.addEventListener('markerLost', () => {
+                console.log("⚠️ Marker lost");
+            });
+        }
     </script>
 </body>
 </html>
