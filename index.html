@@ -1,123 +1,76 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Business Card</title>
+    <title>AR Test</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
     
-    <!-- AR Libraries (NO TRAILING SPACES!) -->
+    <!-- AR Libraries -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.js"></script>
     
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        body { margin: 0; overflow: hidden; }
         #status {
-            position: fixed; top: 10px; width: 100%; text-align: center;
-            color: white; background: rgba(37, 211, 102, 0.85); padding: 8px; z-index: 9999;
-            font-weight: bold; display: none;
+            position: fixed; bottom: 15px; width: 100%;
+            text-align: center; padding: 12px;
+            background: rgba(0,0,0,0.8); color: white;
+            font-family: sans-serif; font-weight: bold;
+            z-index: 9999; font-size: 18px;
         }
-        #error {
-            position: fixed; top: 10px; width: 100%; text-align: center;
-            color: white; background: rgba(220, 50, 47, 0.9); padding: 8px; z-index: 9999;
-            display: none; font-weight: bold;
-        }
-        #instructions {
-            position: fixed; bottom: 20px; width: 100%; text-align: center;
-            color: white; background: rgba(0,0,0,0.7); padding: 10px; z-index: 9999;
+        #status.detected {
+            background: rgba(37, 211, 102, 0.9);
         }
     </style>
 </head>
 <body>
 
-    <div id="status">✓ Camera ready • Show your marker</div>
-    <div id="error">⚠️ Marker/video missing! Check files.</div>
-    <div id="instructions">📱 Point camera at YOUR printed marker</div>
+    <div id="status">🔍 Show HIRO marker</div>
 
     <a-scene 
         embedded 
-        arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.75;"
+        arjs="sourceType: webcam; debugUIEnabled: false;"
         vr-mode-ui="enabled: false">
         
-        <a-assets>
-            <!-- CRITICAL: Verify these filenames match EXACTLY -->
-            <video id="ar-video" src="video.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
-            <a-asset-item id="my-marker" src="pattern-marker.patt"></a-asset-item>
-        </a-assets>
-
-        <!-- CUSTOM MARKER (using preloaded asset) -->
-        <a-marker preset="custom" url="#my-marker" smooth="true">
+        <!-- HIRO MARKER (built-in - no pattern file needed!) -->
+        <a-marker preset="hiro">
             <a-video 
-                src="#ar-video"                 width="1.8" 
-                height="1" 
+                src="video.mp4"
+                width="1.8"
+                height="1"
                 rotation="-90 0 0"
-                muted>
+                autoplay="true"
+                muted
+                loop
+                playsinline>
             </a-video>
         </a-marker>
 
-        <!-- Camera handled by AR.js - NO explicit camera entity needed -->
     </a-scene>
 
     <script>
-        const statusEl = document.getElementById('status');
-        const errorEl = document.getElementById('error');
+        const status = document.getElementById('status');
         const scene = document.querySelector('a-scene');
-        let markerDetected = false;
-
-        // Show status after camera initializes
-        setTimeout(() => {
-            statusEl.style.display = 'block';
-        }, 2500);
-
-        // Force mute on actual video element (double protection)
-        scene.addEventListener('loaded', () => {
-            setTimeout(() => {
-                const aVideo = document.querySelector('a-video');
-                if (aVideo?.components?.material?.material?.map?.image) {
-                    const vid = aVideo.components.material.material.map.image;
-                    vid.muted = true;
-                    vid.volume = 0;
-                    console.log("🔇 Video forced muted");
-                }
-            }, 1000);
-        });
-
+        
         // Marker detection feedback
         scene.addEventListener('markerFound', () => {
-            markerDetected = true;
-            statusEl.textContent = "🎬 Video playing! (Muted)";
-            statusEl.style.background = "rgba(37, 211, 102, 0.95)";
-            console.log("✅ Marker detected!");
+            status.textContent = "✅ Video playing!";
+            status.className = 'detected';
         });
         
         scene.addEventListener('markerLost', () => {
-            if (markerDetected) {
-                statusEl.textContent = "✓ Camera ready • Show your marker";
-                statusEl.style.background = "rgba(37, 211, 102, 0.85)";
-            }
+            status.textContent = "🔍 Show HIRO marker";
+            status.className = '';
         });
-
-        // Critical error handling        scene.addEventListener('error', (e) => {
-            console.error("AR.js Error:", e.detail);
-            
-            if (e.detail.type === 'notfound' || e.detail.message?.includes('pattern')) {
-                errorEl.textContent = "❌ MARKER FILE MISSING! Check 'pattern-marker.patt'";
-                errorEl.style.display = 'block';
-                statusEl.style.display = 'none';
-            }
-        });
-
-        // Verify files exist (simple check)
-        fetch('pattern-marker.patt')
-            .catch(() => {
-                errorEl.textContent = "❌ pattern-marker.patt NOT FOUND in repo root!";
-                errorEl.style.display = 'block';
-            });
         
-        fetch('video.mp4')
-            .catch(() => {
-                errorEl.textContent = "❌ video.mp4 NOT FOUND in repo root!";
-                errorEl.style.display = 'block';
-            });
+        // Force mute (double protection)
+        setTimeout(() => {
+            const vid = document.querySelector('video');
+            if (vid) {
+                vid.muted = true;
+                vid.volume = 0;
+            }
+        }, 2000);
     </script>
 
 </body>
