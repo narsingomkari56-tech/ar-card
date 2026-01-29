@@ -1,90 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AR Test - HIRO Marker</title>
+    <title>AR Business Card</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     
-    <!-- AR Libraries -->
+    <!-- AR Libraries (NO TRAILING SPACES!) -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.js"></script>
     
     <style>
         body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
-        
-        #instructions {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px;
-            z-index: 9999;
-        }
-        
         #status {
-            position: fixed;
-            top: 10px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            color: white;
-            background: rgba(37, 211, 102, 0.8);
-            padding: 8px;
-            z-index: 9999;
-            display: none;
+            position: fixed; top: 10px; width: 100%; text-align: center;
+            color: white; background: rgba(37, 211, 102, 0.85); padding: 8px; z-index: 9999;
+            font-weight: bold; display: none;
+        }
+        #error {
+            position: fixed; top: 10px; width: 100%; text-align: center;
+            color: white; background: rgba(220, 50, 47, 0.9); padding: 8px; z-index: 9999;
+            display: none; font-weight: bold;
+        }
+        #instructions {
+            position: fixed; bottom: 20px; width: 100%; text-align: center;
+            color: white; background: rgba(0,0,0,0.7); padding: 10px; z-index: 9999;
         }
     </style>
 </head>
-
 <body>
 
-    <div id="status">✓ Camera ready - Show HIRO marker</div>
-    <div id="instructions">
-        <strong>📱 Point camera at HIRO marker below</strong><br>
-        <small>(Print or show on another device)</small>
-    </div>
+    <div id="status">✓ Camera ready • Show your marker</div>
+    <div id="error">⚠️ Marker/video missing! Check files.</div>
+    <div id="instructions">📱 Point camera at YOUR printed marker</div>
 
     <a-scene 
         embedded 
-        arjs="sourceType: webcam; debugUIEnabled: false;"
+        arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.75;"
         vr-mode-ui="enabled: false">
         
-        <!-- HIRO MARKER (built-in, no pattern file needed!) -->
-        <a-marker preset="hiro">
+        <a-assets>
+            <!-- CRITICAL: Verify these filenames match EXACTLY -->
+            <video id="ar-video" src="video.mp4" preload="auto" loop muted playsinline webkit-playsinline></video>
+            <a-asset-item id="my-marker" src="pattern-marker.patt"></a-asset-item>
+        </a-assets>
+
+        <!-- CUSTOM MARKER (using preloaded asset) -->
+        <a-marker preset="custom" url="#my-marker" smooth="true">
             <a-video 
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
-                width="1"
-                height="0.75"
+                src="#ar-video"                 width="1.8" 
+                height="1" 
                 rotation="-90 0 0"
-                autoplay="true"
-                muted="true"
-                playsinline
-                webkit-playsinline>
+                muted>
             </a-video>
         </a-marker>
 
-        <a-entity camera></a-entity>
+        <!-- Camera handled by AR.js - NO explicit camera entity needed -->
     </a-scene>
 
     <script>
-        const status = document.getElementById('status');
-        
-        // Show status after 2 seconds
+        const statusEl = document.getElementById('status');
+        const errorEl = document.getElementById('error');
+        const scene = document.querySelector('a-scene');
+        let markerDetected = false;
+
+        // Show status after camera initializes
         setTimeout(() => {
-            status.style.display = 'block';
-        }, 2000);
-        
-        // Console feedback
-        document.querySelector('a-scene').addEventListener('markerFound', () => {
-            console.log('🎯 HIRO marker detected! Video should play...');
+            statusEl.style.display = 'block';
+        }, 2500);
+
+        // Force mute on actual video element (double protection)
+        scene.addEventListener('loaded', () => {
+            setTimeout(() => {
+                const aVideo = document.querySelector('a-video');
+                if (aVideo?.components?.material?.material?.map?.image) {
+                    const vid = aVideo.components.material.material.map.image;
+                    vid.muted = true;
+                    vid.volume = 0;
+                    console.log("🔇 Video forced muted");
+                }
+            }, 1000);
+        });
+
+        // Marker detection feedback
+        scene.addEventListener('markerFound', () => {
+            markerDetected = true;
+            statusEl.textContent = "🎬 Video playing! (Muted)";
+            statusEl.style.background = "rgba(37, 211, 102, 0.95)";
+            console.log("✅ Marker detected!");
         });
         
-        document.querySelector('a-scene').addEventListener('markerLost', () => {
-            console.log('⚠️ Marker lost');
+        scene.addEventListener('markerLost', () => {
+            if (markerDetected) {
+                statusEl.textContent = "✓ Camera ready • Show your marker";
+                statusEl.style.background = "rgba(37, 211, 102, 0.85)";
+            }
         });
+
+        // Critical error handling        scene.addEventListener('error', (e) => {
+            console.error("AR.js Error:", e.detail);
+            
+            if (e.detail.type === 'notfound' || e.detail.message?.includes('pattern')) {
+                errorEl.textContent = "❌ MARKER FILE MISSING! Check 'pattern-marker.patt'";
+                errorEl.style.display = 'block';
+                statusEl.style.display = 'none';
+            }
+        });
+
+        // Verify files exist (simple check)
+        fetch('pattern-marker.patt')
+            .catch(() => {
+                errorEl.textContent = "❌ pattern-marker.patt NOT FOUND in repo root!";
+                errorEl.style.display = 'block';
+            });
+        
+        fetch('video.mp4')
+            .catch(() => {
+                errorEl.textContent = "❌ video.mp4 NOT FOUND in repo root!";
+                errorEl.style.display = 'block';
+            });
     </script>
 
 </body>
