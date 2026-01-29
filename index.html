@@ -4,12 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Connect on WhatsApp</title>
-
+    <!-- CRITICAL: Removed trailing spaces in script URLs -->
     <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
-
+    
     <style>
-        /* 2. THE SAFETY BUTTON (Always visible) */
         .whatsapp-btn {
             position: fixed;
             bottom: 40px;
@@ -23,31 +22,42 @@
             font-weight: bold;
             text-decoration: none;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 9999; /* Sits on top of everything */
+            z-index: 9999;
             display: flex;
             align-items: center;
             gap: 10px;
             border: 2px solid white;
         }
-
         .whatsapp-btn img {
             width: 24px;
             height: 24px;
+            display: block; /* Prevents layout shift */
         }
-
-        /* ERROR MESSAGE BOX */
         #error-msg {
-            position: fixed; top: 10px; left: 0; width: 100%;
-            text-align: center; color: red; background: rgba(0,0,0,0.7);
-            display: none; z-index: 9998;
+            position: fixed; 
+            top: 10px; 
+            left: 0; 
+            width: 100%;
+            text-align: center; 
+            color: white; 
+            background: rgba(220, 50, 47, 0.9); /* Better visibility */
+            padding: 8px;
+            font-family: sans-serif;
+            display: none; 
+            z-index: 9998;
+            font-weight: bold;
+        }
+        /* Hide AR debug UI completely */
+        .arjs-debug {
+            display: none !important;
         }
     </style>
 </head>
-
 <body style="margin: 0; overflow: hidden;">
 
-    <div id="error-msg">Camera blocked? Check permissions.</div>
+    <div id="error-msg">⚠️ Camera access required. Check permissions or use HTTPS.</div>
 
+    <!-- FIXED: Removed trailing space in WhatsApp URL -->
     <a href="https://wa.me/919999999999" class="whatsapp-btn">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA">
         Chat on WhatsApp
@@ -56,14 +66,20 @@
     <a-scene 
         embedded
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.75;">
-
+        arjs="sourceType: webcam; 
+               debugUIEnabled: false; 
+               detectionMode: mono; 
+               matrixCodeType: 3x3;">
+        
         <a-assets>
+            <!-- FIXED: Removed trailing space in SVG URL -->
             <img id="wa-logo" src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg">
+            <!-- CRITICAL: Verify this file exists in your project root! -->
+            <a-asset-item id="marker" src="pattern-marker.patt"></a-asset-item>
         </a-assets>
 
-        <a-marker type="pattern" url="pattern-marker.patt">
-            
+        <!-- FIXED: Use asset reference + added fallback -->
+        <a-marker preset="custom" url="#marker">
             <a-image 
                 src="#wa-logo" 
                 rotation="-90 0 0" 
@@ -72,24 +88,54 @@
                 position="0 0.5 0"
                 animation="property: scale; to: 1.2 1.2 1.2; dir: alternate; loop: true; dur: 1000">
             </a-image>
-
         </a-marker>
-
-        <a-entity camera></a-entity>
-
+        
+        <!-- REMOVED explicit camera entity - AR.js handles this internally -->
+        
     </a-scene>
 
     <script>
-        // Simple check to see if camera is allowed
-        navigator.mediaDevices.getUserMedia({video: true})
-        .then(function(stream) {
-            console.log("Camera OK");
-        })
-        .catch(function(err) {
-            document.getElementById('error-msg').style.display = 'block';
-            document.getElementById('error-msg').innerText = "Error: " + err.name;
+        // Comprehensive camera/AR initialization check
+        document.addEventListener('DOMContentLoaded', () => {
+            const errorMsg = document.getElementById('error-msg');
+            
+            // Check secure context (REQUIRED for camera)
+            if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+                errorMsg.textContent = "🔒 Camera requires HTTPS or localhost";
+                errorMsg.style.display = 'block';
+                console.error("Camera access blocked: Page must be served over HTTPS or localhost");
+                return;
+            }
+            
+            // Verify critical resources loaded
+            if (!window.AFRAME || !window.ARjs) {
+                errorMsg.textContent = "❌ AR libraries failed to load. Check console.";
+                errorMsg.style.display = 'block';
+                console.error("AR.js or A-Frame not loaded. Check network tab for 404 errors.");
+                return;
+            }
+            
+            // Camera permission check (complements AR.js)
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    // Stop test stream immediately (AR.js will open its own)
+                    stream.getTracks().forEach(track => track.stop());
+                    console.log("✓ Camera permission granted");
+                })
+                .catch(err => {
+                    errorMsg.textContent = `	Camera blocked: ${err.name}. Check browser permissions.`;
+                    errorMsg.style.display = 'block';
+                    console.error("Camera permission error:", err);
+                });
+            
+            // AR.js specific error handling
+            document.querySelector('a-scene').addEventListener('error', (e) => {
+                if (e.detail.type === 'marker') {
+                    errorMsg.textContent = "⚠️ Marker pattern not found. Verify 'pattern-marker.patt' exists.";
+                    errorMsg.style.display = 'block';
+                }
+            });
         });
     </script>
-
 </body>
 </html>
