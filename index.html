@@ -1,184 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Connect on WhatsApp</title>
+    <title>AR Business Card</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     
-    <!-- ✅ Updated CDN URLs -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     
     <style>
-        .whatsapp-btn {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #25D366;
-            color: white;
-            padding: 15px 30px;
-            border-radius: 50px;
-            font-family: sans-serif;
-            font-weight: bold;
-            text-decoration: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border: 2px solid white;
+        /* UI STYLE - Centered Buttons */
+        .ui-container {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 100%; text-align: center; z-index: 10;
+            display: flex; justify-content: center; gap: 15px; pointer-events: none;
         }
-        .whatsapp-btn img {
-            width: 24px;
-            height: 24px;
+        .btn {
+            background-color: #25D366; color: white; padding: 12px 24px;
+            border-radius: 30px; text-decoration: none; font-family: Arial, sans-serif;
+            font-weight: bold; box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+            pointer-events: auto; border: 2px solid white;
         }
-        #error-msg {
-            position: fixed; 
-            top: 10px; 
-            left: 0; 
-            width: 100%;
-            text-align: center; 
-            color: white; 
-            background: rgba(220, 50, 47, 0.9);
-            padding: 10px;
-            font-family: sans-serif;
-            display: none; 
-            z-index: 9998;
-            font-weight: bold;
-            animation: pulse 2s infinite;
+        .upi-btn { background-color: #1a73e8; }
+        
+        /* START BUTTON STYLE */
+        #start-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex;
+            justify-content: center; align-items: center; z-index: 9999;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        #loading {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            font-family: sans-serif;
-        }
-        .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #25D366;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #start-btn {
+            padding: 15px 30px; background: white; border: none; font-size: 20px;
+            font-weight: bold; border-radius: 10px; cursor: pointer;
         }
     </style>
 </head>
+
 <body style="margin: 0; overflow: hidden;">
 
-    <!-- Loading screen -->
-    <div id="loading">
-        <div class="spinner"></div>
-        <h3>Initializing Camera...</h3>
-        <p style="color: #666; margin-top: 10px;">Please allow camera access</p>
+    <div id="start-container">
+        <button id="start-btn">TAP TO START AR</button>
     </div>
 
-    <div id="error-msg">⚠️ Camera access required</div>
-
-    <a href="https://wa.me/919999999999" class="whatsapp-btn">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA">
-        Chat on WhatsApp
-    </a>
+    <div class="ui-container">
+        <a href="https://wa.me/919999999999" class="btn" target="_blank">WhatsApp</a>
+        
+        <a href="upi://pay?pa=YOUR_UPI_ID@oksbi&pn=YOUR_NAME&cu=INR" class="btn upi-btn">Pay Now</a>
+    </div>
 
     <a-scene 
-        embedded
-        vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;"
-        style="display: none;">
+        embedded 
+        arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.75;"
+        renderer="logarithmicDepthBuffer: true;"
+        vr-mode-ui="enabled: false">
         
         <a-assets>
-            <img id="wa-logo" src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg">
-            <a-asset-item id="marker" src="pattern-marker.patt"></a-asset-item>
+            <video id="ar-video" 
+                   src="./video.mp4" 
+                   preload="auto" loop crossorigin playsinline webkit-playsinline muted>
+            </video>
         </a-assets>
 
-        <a-marker preset="custom" url="#marker">
-            <a-image 
-                src="#wa-logo" 
-                rotation="-90 0 0" 
-                width="1" 
-                height="1"
-                position="0 0.5 0"
-                animation="property: scale; to: 1.2 1.2 1.2; dir: alternate; loop: true; dur: 1000">
-            </a-image>
+        <a-marker type="pattern" url="./pattern-marker.patt" smooth="true">
+            <a-video src="#ar-video" width="1.8" height="1" rotation="-90 0 0"></a-video>
         </a-marker>
-        
+
+        <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-        const loadingScreen = document.getElementById('loading');
-        const errorMsg = document.getElementById('error-msg');
-        const scene = document.querySelector('a-scene');
-        let cameraWorking = false;
-        let errorTimeout = null;
+        var video = document.getElementById('ar-video');
+        var startBtn = document.getElementById('start-btn');
+        var startScreen = document.getElementById('start-container');
 
-        // Hide loading screen after 3 seconds (AR.js should be ready by then)
-        setTimeout(() => {
-            loadingScreen.style.display = 'none';
-            scene.style.display = 'block';
-        }, 3000);
-
-        // Listen for AR.js camera ready event
-        window.addEventListener('ARjs-session-init', () => {
-            console.log("✅ AR.js camera initialized successfully");
-            cameraWorking = true;
-            errorMsg.style.display = 'none';
-            loadingScreen.style.display = 'none';
-            scene.style.display = 'block';
+        // Unlock Video on Start
+        startBtn.addEventListener('click', function() {
+            startScreen.style.display = 'none';
+            video.play();
+            video.pause(); // Prime the engine
         });
 
-        // Listen for marker events (confirms everything is working)
-        scene.addEventListener('markerFound', () => {
-            console.log("🎯 Marker detected! AR is working!");
-            errorMsg.style.display = 'none';
-        });
+        // Play/Pause on Marker
+        var marker = document.querySelector('a-marker');
+        marker.addEventListener('markerFound', function() { video.play(); });
+        marker.addEventListener('markerLost', function() { video.pause(); });
 
-        scene.addEventListener('markerLost', () => {
-            console.log("⚠️ Marker lost");
-        });
-
-        // Handle AR.js errors
-        scene.addEventListener('error', (e) => {
-            console.error("AR.js Error:", e.detail);
-            
-            if (e.detail.type === 'nopermission') {
-                errorMsg.textContent = "❌ Camera permission denied. Check browser settings.";
-                errorMsg.style.display = 'block';
-            } else if (e.detail.type === 'notfound') {
-                errorMsg.textContent = "⚠️ Marker pattern not found. Verify 'pattern-marker.patt' exists.";
-                errorMsg.style.display = 'block';
-            } else if (e.detail.type === 'cameranotfound') {
-                errorMsg.textContent = "❌ No camera detected on this device.";
-                errorMsg.style.display = 'block';
-            }
-        });
-
-        // Fallback: If no camera activity after 8 seconds, show error
-        setTimeout(() => {
-            if (!cameraWorking) {
-                errorMsg.textContent = "⚠️ Camera may be blocked. Check browser permissions.";
-                errorMsg.style.display = 'block';
-                console.warn("Camera not confirmed after 8 seconds");
-            }
-        }, 8000);
-
-        // Click to retry camera access
-        errorMsg.addEventListener('click', () => {
-            errorMsg.style.display = 'none';
-            location.reload(); // Reload page to re-request permission
+        // Failsafe: Tap screen to force play
+        window.addEventListener('click', function () {
+            if(marker.object3D.visible && video.paused) { video.play(); }
         });
     </script>
 </body>
