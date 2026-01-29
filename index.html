@@ -3,84 +3,26 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Video Card</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <title>Debug AR Camera</title>
+
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
-    
-    <style>
-        /* UI OVERLAY STYLES */
-        .arjs-loader {
-            height: 100%; width: 100%; position: absolute; top: 0; left: 0;
-            background: rgba(0,0,0,0.8); z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-            color: white; font-family: sans-serif;
-        }
-        .start-btn {
-            position: absolute; bottom: 30px; left: 50%;
-            transform: translateX(-50%); z-index: 9998;
-            background: #25D366; color: white; border: none;
-            padding: 12px 30px; border-radius: 50px;
-            font-size: 16px; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-    </style>
 </head>
+
 <body style="margin: 0; overflow: hidden;">
 
-    <!-- LOADER -->
-    <div class="arjs-loader"><div>Loading AR...</div></div>
-    
-    <!-- TAP TO START BUTTON -->
-    <button class="start-btn" id="playBtn">▶ Tap to Start Video</button>
-    
-    <!-- THE SCENE -->
-    <!-- ⚠️ CRITICAL: patternRatio: 0.75 match the generator settings -->
     <a-scene 
+        embedded
         vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true;"
         arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.75;">
-        
-        <a-assets>
-            <video 
-                id="vid" 
-                src="video.mp4" 
-                preload="auto" 
-                response-type="arraybuffer" 
-                loop 
-                crossorigin 
-                webkit-playsinline 
-                playsinline>
-            </video>
-        </a-assets>
-        
-        <!-- MARKER -->
-        <a-marker type="pattern" url="pattern-marker.patt" smooth="true">
-            <a-video 
-                src="#vid" 
-                width="1.8" 
-                height="1" 
-                rotation="-90 0 0"
-                position="0 0 0">
-            </a-video>
-        </a-marker>
-        
-        <a-entity camera></a-entity>
-    </a-scene>
-    
-    <script>
-        // 1. Remove Loader when ready
-        document.querySelector('a-scene').addEventListener('loaded', function () {
-            document.querySelector('.arjs-loader').style.display = 'none';
-        });
 
-        // 2. Handle Tap to Play (Required for iPhone)
-        const vid = document.querySelector('#vid');
-        const btn = document.querySelector('#playBtn');
-        
-        btn.addEventListener('click', function() {
-            vid.play();
-            btn.style.display = 'none'; // Hide button after click
-        });
-    </script>
+        <a-marker type="pattern" url="pattern-marker.patt">
+            <a-box position="0 0.5 0" material="color: red; opacity: 0.5;"></a-box>
+        </a-marker>
+
+        <a-entity camera></a-entity>
+
+    </a-scene>
+
 </body>
 </html>
