@@ -5,107 +5,99 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     
-    <!-- AR Libraries -->
-    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.js"></script>
+    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.min.js"></script>
     
     <style>
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            font-family: Arial, sans-serif;
-        }
+        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
         
+        /* STATUS BAR (Bottom) */
         #status {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            z-index: 9999;
-            transition: all 0.3s ease;
+            position: fixed; bottom: 20px; left: 0; width: 100%;
+            text-align: center; padding: 15px;
+            background: rgba(0, 0, 0, 0.85); color: white;
+            font-weight: bold; font-size: 18px; z-index: 9998;
+            transition: all 0.3s ease; display: none; /* Hidden until marker found */
         }
         
-        #status.detected {
-            background: rgba(37, 211, 102, 0.95);
-            transform: scale(1.03);
-        }
-        
-        #instructions {
-            position: fixed;
-            top: 15px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            font-size: 14px;
-            z-index: 9999;
+        /* START BUTTON (Required for iPhone) */
+        #start-btn {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px; background: #25D366; color: white;
+            font-size: 20px; font-weight: bold; border-radius: 50px;
+            border: 2px solid white; z-index: 9999; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
     </style>
 </head>
 <body>
 
-    <div id="instructions">📱 Point camera at YOUR custom marker</div>
-    <div id="status">🔍 Scanning for your marker...</div>
+    <div id="start-btn">▶ Tap to Start Camera</div>
+
+    <div id="status">🔍 Scanning...</div>
 
     <a-scene 
         embedded 
-        arjs="sourceType: webcam; 
-               debugUIEnabled: false;
-               patternRatio: 0.5;"
+        arjs="sourceType: webcam; debugUIEnabled: false; patternRatio: 0.50;"
         vr-mode-ui="enabled: false">
         
         <a-assets>
-            <video id="ar-video" src="video.mp4" loop muted playsinline></video>
-            <a-asset-item id="my-marker" src="pattern-marker.patt"></a-asset-item>
+            <video 
+                id="ar-video" 
+                src="video.mp4" 
+                preload="auto" 
+                loop 
+                crossorigin="anonymous" 
+                webkit-playsinline 
+                playsinline>
+            </video>
         </a-assets>
         
-        <!-- CUSTOM MARKER -->
-        <a-marker preset="custom" url="#my-marker" smooth="true">
+        <a-marker type="pattern" url="pattern-marker.patt" smooth="true">
             <a-video 
                 src="#ar-video"
                 width="1.8"
                 height="1"
-                rotation="-90 0 0"
-                muted>
+                rotation="-90 0 0">
             </a-video>
         </a-marker>
+
+        <a-entity camera></a-entity>
 
     </a-scene>
 
     <script>
+        const startBtn = document.getElementById('start-btn');
         const statusEl = document.getElementById('status');
+        const video = document.getElementById('ar-video');
         const scene = document.querySelector('a-scene');
-        let isDetected = false;
+
+        // 1. User MUST tap this to initialize video (iOS Rule)
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none'; // Hide button
+            statusEl.style.display = 'block'; // Show status bar
+            video.play(); // "Warm up" the video
+            video.pause(); // Pause it until marker is found
+        });
         
-        // Marker detection feedback
+        // 2. Marker Found -> Play Video
         scene.addEventListener('markerFound', () => {
-            if (!isDetected) {
-                statusEl.textContent = "✅ MARKER DETECTED! Video playing...";
-                statusEl.className = 'detected';
-                console.log("🎯 Custom marker detected!");
-                isDetected = true;
-            }
+            statusEl.textContent = "✅ MARKER DETECTED!";
+            statusEl.style.background = "rgba(37, 211, 102, 0.95)";
+            video.play();
         });
         
+        // 3. Marker Lost -> Pause Video
         scene.addEventListener('markerLost', () => {
-            if (isDetected) {
-                statusEl.textContent = "🔍 Scanning for your marker...";
-                statusEl.className = '';
-                console.log("⚠️ Marker lost");
-                isDetected = false;
-            }
+            statusEl.textContent = "🔍 Scanning...";
+            statusEl.style.background = "rgba(0, 0, 0, 0.85)";
+            video.pause();
         });
-        
-        // Force mute
-        setTimeout(() => {
+    </script>
+
+</body>
+</html>
             const videoEl = document.querySelector('video');
             if (videoEl) {
                 videoEl.muted = true;
@@ -141,4 +133,5 @@
 
 </body>
 </html>
+
 
