@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Connect on WhatsApp</title>
     
-    <!-- ✅ UPDATED: Reliable CDN URLs (NO trailing spaces) -->
+    <!-- ✅ Updated CDN URLs -->
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.0/aframe/build/aframe-ar.js"></script>
     
@@ -46,6 +46,11 @@
             display: none; 
             z-index: 9998;
             font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
         #loading {
             position: fixed;
@@ -58,19 +63,18 @@
             z-index: 10000;
             font-family: sans-serif;
         }
-        #loading-bar {
-            width: 200px;
-            height: 10px;
-            background: #e0e0e0;
-            border-radius: 5px;
-            margin-top: 20px;
-            overflow: hidden;
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #25D366;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
         }
-        #loading-progress {
-            width: 0%;
-            height: 100%;
-            background: #25D366;
-            transition: width 0.3s;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -78,12 +82,12 @@
 
     <!-- Loading screen -->
     <div id="loading">
-        <h2>🚀 Loading AR Experience...</h2>
-        <div id="loading-bar"><div id="loading-progress"></div></div>
-        <p id="loading-status">Initializing libraries...</p>
+        <div class="spinner"></div>
+        <h3>Initializing Camera...</h3>
+        <p style="color: #666; margin-top: 10px;">Please allow camera access</p>
     </div>
 
-    <div id="error-msg">⚠️ Error loading AR libraries. Check console.</div>
+    <div id="error-msg">⚠️ Camera access required</div>
 
     <a href="https://wa.me/919999999999" class="whatsapp-btn">
         <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WA">
@@ -93,12 +97,11 @@
     <a-scene 
         embedded
         vr-mode-ui="enabled: false"
-        arjs="sourceType: webcam; debugUIEnabled: false;"
-        style="display: none;"> <!-- Hidden until loaded -->
+        arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;"
+        style="display: none;">
         
         <a-assets>
             <img id="wa-logo" src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg">
-            <!-- Make sure this file exists in your project! -->
             <a-asset-item id="marker" src="pattern-marker.patt"></a-asset-item>
         </a-assets>
 
@@ -117,94 +120,66 @@
 
     <script>
         const loadingScreen = document.getElementById('loading');
-        const loadingProgress = document.getElementById('loading-progress');
-        const loadingStatus = document.getElementById('loading-status');
         const errorMsg = document.getElementById('error-msg');
         const scene = document.querySelector('a-scene');
-        
-        let progress = 0;
-        const updateProgress = (status, percent) => {
-            loadingStatus.textContent = status;
-            loadingProgress.style.width = `${percent}%`;
-        };
+        let cameraWorking = false;
+        let errorTimeout = null;
 
-        // Step 1: Check secure context
-        updateProgress("Checking security...", 10);
-        if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-            errorMsg.textContent = "🔒 Camera requires HTTPS or localhost";
-            errorMsg.style.display = 'block';
-            loadingScreen.style.display = 'none';
-            console.error("❌ Not a secure context. Use HTTPS or localhost.");
-            throw new Error("Insecure context");
-        }
-
-        // Step 2: Wait for A-Frame to load
-        updateProgress("Loading A-Frame...", 30);
-        const checkAFrame = setInterval(() => {
-            if (window.AFRAME) {
-                clearInterval(checkAFrame);
-                console.log("✅ A-Frame loaded:", AFRAME.version);
-                updateProgress("Loading AR.js...", 50);
-                
-                // Step 3: Wait for AR.js
-                const checkARjs = setInterval(() => {
-                    if (window.ARjs) {
-                        clearInterval(checkARjs);
-                        console.log("✅ AR.js loaded");
-                        updateProgress("Initializing camera...", 70);
-                        
-                        // Step 4: Check camera permission
-                        navigator.mediaDevices.getUserMedia({ video: true })
-                            .then(stream => {
-                                stream.getTracks().forEach(track => track.stop());
-                                console.log("✅ Camera permission granted");
-                                updateProgress("Starting AR...", 90);
-                                
-                                // Step 5: Show scene and hide loading
-                                setTimeout(() => {
-                                    scene.style.display = 'block';
-                                    loadingScreen.style.display = 'none';
-                                    console.log("🎉 AR experience ready!");
-                                }, 300);
-                            })
-                            .catch(err => {
-                                clearInterval(checkARjs);
-                                errorMsg.textContent = `	Camera blocked: ${err.name}`;
-                                errorMsg.style.display = 'block';
-                                loadingScreen.style.display = 'none';
-                                console.error("❌ Camera error:", err);
-                            });
-                    } else if (progress > 10000) { // Timeout after 10 seconds
-                        clearInterval(checkARjs);
-                        errorMsg.textContent = "❌ AR.js failed to load. Check network/console.";
-                        errorMsg.style.display = 'block';
-                        loadingScreen.style.display = 'none';
-                        console.error("AR.js not loaded after 10 seconds");
-                    }
-                    progress += 100;
-                }, 100);
-            }
-        }, 100);
-
-        // Fallback timeout
+        // Hide loading screen after 3 seconds (AR.js should be ready by then)
         setTimeout(() => {
-            if (!window.AFRAME) {
-                errorMsg.textContent = "❌ A-Frame failed to load. Check your internet connection.";
-                errorMsg.style.display = 'block';
-                loadingScreen.style.display = 'none';
-                console.error("A-Frame not loaded after 10 seconds");
-            }
-        }, 10000);
+            loadingScreen.style.display = 'none';
+            scene.style.display = 'block';
+        }, 3000);
 
-        // AR.js marker error handling
-        if (scene) {
-            scene.addEventListener('markerFound', () => {
-                console.log("🎯 Marker detected!");
-            });
-            scene.addEventListener('markerLost', () => {
-                console.log("⚠️ Marker lost");
-            });
-        }
+        // Listen for AR.js camera ready event
+        window.addEventListener('ARjs-session-init', () => {
+            console.log("✅ AR.js camera initialized successfully");
+            cameraWorking = true;
+            errorMsg.style.display = 'none';
+            loadingScreen.style.display = 'none';
+            scene.style.display = 'block';
+        });
+
+        // Listen for marker events (confirms everything is working)
+        scene.addEventListener('markerFound', () => {
+            console.log("🎯 Marker detected! AR is working!");
+            errorMsg.style.display = 'none';
+        });
+
+        scene.addEventListener('markerLost', () => {
+            console.log("⚠️ Marker lost");
+        });
+
+        // Handle AR.js errors
+        scene.addEventListener('error', (e) => {
+            console.error("AR.js Error:", e.detail);
+            
+            if (e.detail.type === 'nopermission') {
+                errorMsg.textContent = "❌ Camera permission denied. Check browser settings.";
+                errorMsg.style.display = 'block';
+            } else if (e.detail.type === 'notfound') {
+                errorMsg.textContent = "⚠️ Marker pattern not found. Verify 'pattern-marker.patt' exists.";
+                errorMsg.style.display = 'block';
+            } else if (e.detail.type === 'cameranotfound') {
+                errorMsg.textContent = "❌ No camera detected on this device.";
+                errorMsg.style.display = 'block';
+            }
+        });
+
+        // Fallback: If no camera activity after 8 seconds, show error
+        setTimeout(() => {
+            if (!cameraWorking) {
+                errorMsg.textContent = "⚠️ Camera may be blocked. Check browser permissions.";
+                errorMsg.style.display = 'block';
+                console.warn("Camera not confirmed after 8 seconds");
+            }
+        }, 8000);
+
+        // Click to retry camera access
+        errorMsg.addEventListener('click', () => {
+            errorMsg.style.display = 'none';
+            location.reload(); // Reload page to re-request permission
+        });
     </script>
 </body>
 </html>
